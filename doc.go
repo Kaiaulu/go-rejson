@@ -22,15 +22,6 @@ Go-ReJSON supports both the clients. Use any of the above two client you want, G
 features and functionalities in a more generic and standard way.
 
 
-Installation
-
-
-To install and use ReJSON module, one must have the pre-requisites installed and setup. Follow the following steps :
-	go get github.com/nitishm/go-rejson
-	cd $GOPATH/src/github.com/nitishm/go-rejson
-	./install-redis-rejson.sh
-
-
 Examples
 
 

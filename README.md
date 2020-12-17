@@ -1,44 +1,30 @@
 # Go-ReJSON - a golang client for ReJSON (a JSON data type for Redis)
 Go-ReJSON is a [Go](https://golang.org/) client for [ReJSON](https://github.com/RedisLabsModules/rejson) Redis Module. 
 
-[![GoDoc](https://godoc.org/github.com/nitishm/go-rejson?status.svg)](https://godoc.org/github.com/nitishm/go-rejson)
-[![Build Status](https://travis-ci.org/nitishm/go-rejson.svg?branch=master)](https://travis-ci.org/nitishm/go-rejson)
-[![codecov](https://coveralls.io/repos/github/nitishm/go-rejson/badge.svg?branch=master)](https://coveralls.io/github/nitishm/go-rejson?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/nitishm/go-rejson)](https://goreportcard.com/report/github.com/nitishm/go-rejson)
+[![GoDoc](https://godoc.org/github.com/kaiaulu/go-rejson?status.svg)](https://godoc.org/github.com/kaiaulu/go-rejson)
+[![Build Status](https://travis-ci.org/kaiaulu/go-rejson.svg?branch=master)](https://travis-ci.org/kaiaulu/go-rejson)
+[![codecov](https://coveralls.io/repos/github/kaiaulu/go-rejson/badge.svg?branch=master)](https://coveralls.io/github/kaiaulu/go-rejson?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kaiaulu/go-rejson)](https://goreportcard.com/report/github.com/kaiaulu/go-rejson)
 
 > ReJSON is a Redis module that implements ECMA-404 The JSON Data Interchange Standard as a native data type. It allows storing, updating and fetching JSON values from Redis keys (documents).
 
-
-Primary features of ReJSON Module:
-    
-    * Full support of the JSON standard
-    * JSONPath-like syntax for selecting element inside documents
-    * Documents are stored as binary data in a tree structure, allowing fast access to sub-elements
-    * Typed atomic operations for all JSON values types
-
-Each and every feature of ReJSON Module is fully incorporated in the project. 
-
-Enjoy ReJSON with the type-safe Redis client, [`Go-Redis/Redis`](https://github.com/go-redis/redis) or use the print-like Redis-api client [`GoModule/Redigo`](https://github.com/gomodule/redigo).
-Go-ReJSON supports both the clients. Use any of the above two client you want, Go-ReJSON helps you out with all its features and functionalities in a more generic and standard way.
-
-Support for `mediocregopher/radix` and other Redis clients is in our RoadMap. Any contributions on the support for other clients is hearty welcome.
-
 ## Installation
-	go get github.com/nitishm/go-rejson
+	go get github.com/kaiaulu/go-rejson
 
 ## Example usage
+
 ```golang
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 
-	"github.com/nitishm/go-rejson"
-	goredis "github.com/go-redis/redis/v7"
-	"github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis/v8"
+	"github.com/kaiaulu/go-rejson"
 )
 
 // Name - student name
@@ -76,14 +62,14 @@ func Example_JSONSet(rh *rejson.Handler) {
 		fmt.Println("Failed to Set: ")
 	}
 
-	studentJSON, err := redis.Bytes(rh.JSONGet("student", "."))
+	studentJSON, err := rh.JSONGet("student", ".")
 	if err != nil {
 		log.Fatalf("Failed to JSONGet")
 		return
 	}
 
 	readStudent := Student{}
-	err = json.Unmarshal(studentJSON, &readStudent)
+	err = json.Unmarshal(studentJSON., &readStudent)
 	if err != nil {
 		log.Fatalf("Failed to JSON Unmarshal")
 		return
@@ -98,33 +84,16 @@ func main() {
 	rh := rejson.NewReJSONHandler()
 	flag.Parse()
 
-	// Redigo Client
-	conn, err := redis.Dial("tcp", *addr)
-	if err != nil {
-		log.Fatalf("Failed to connect to redis-server @ %s", *addr)
-	}
+	cli := redis.NewClient(&redis.Options{Addr: *addr})
 	defer func() {
-		_, err = conn.Do("FLUSHALL")
-		err = conn.Close()
-		if err != nil {
-			log.Fatalf("Failed to communicate to redis-server @ %v", err)
-		}
-	}()
-	rh.SetRedigoClient(conn)
-	fmt.Println("Executing Example_JSONSET for Redigo Client")
-	Example_JSONSet(rh)
-
-	// GoRedis Client
-	cli := goredis.NewClient(&goredis.Options{Addr: *addr})
-	defer func() {
-		if err := cli.FlushAll().Err(); err != nil {
+		if err := cli.FlushAll(context.Background()).Err(); err != nil {
 			log.Fatalf("goredis - failed to flush: %v", err)
 		}
 		if err := cli.Close(); err != nil {
 			log.Fatalf("goredis - failed to communicate to redis-server: %v", err)
 		}
 	}()
-	rh.SetGoRedisClient(cli)
+	rh.SetRedisClient(cli)
 	fmt.Println("\nExecuting Example_JSONSET for Redigo Client")
 	Example_JSONSet(rh)
 }
