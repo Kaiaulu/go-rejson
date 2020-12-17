@@ -1,13 +1,13 @@
 package rejson
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/nitishm/go-rejson/rjs"
+	"github.com/kaiaulu/go-rejson/rjs"
 	"reflect"
 	"testing"
 
-	goredis "github.com/go-redis/redis/v7"
-	redigo "github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis/v8"
 )
 
 func TestUnsupportedCommand(t *testing.T) {
@@ -34,12 +34,9 @@ func (t *TestClient) SetTestingClient(conn interface{}) {
 	t.conn = conn
 
 	switch conn := conn.(type) {
-	case redigo.Conn:
-		t.name = "Redigo-"
-		t.rh.SetRedigoClient(conn)
-	case *goredis.Client:
-		t.name = "GoRedis-"
-		t.rh.SetGoRedisClient(conn)
+	case *redis.Client:
+		t.name = "redis-"
+		t.rh.SetRedisClient(conn)
 	default:
 		t.name = "-"
 		t.conn = "inactive"
@@ -51,37 +48,20 @@ func TestReJSON(t *testing.T) {
 	test := TestClient{}
 	test.init()
 
-	// Redigo Test Client
-	redigoCli, err := redigo.Dial("tcp", ":6379")
-	if err != nil {
-		t.Fatalf("redigo - could not connect to redigo: %v", err)
-		return
-	}
-
-	// GoRedis Test Client
-	goredisCli := goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})
+	// redis Test Client
+	redisCli := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
 
 	clientsObj := []struct {
 		cli       interface{}
 		name      string
 		closeFunc func()
 	}{
-		{cli: redigoCli, name: "Redigo ", closeFunc: func() {
-			_, err = redigoCli.Do("FLUSHALL")
-			if err != nil {
-				t.Fatalf("redigo - failed to flush: %v", err)
+		{cli: redisCli, name: "redis ", closeFunc: func() {
+			if err := redisCli.FlushAll(context.Background()).Err(); err != nil {
+				t.Fatalf("redis - failed to flush: %v", err)
 			}
-			err = redigoCli.Close()
-			if err != nil {
-				t.Fatalf("redigo - failed to close: %v", err)
-			}
-		}},
-		{cli: goredisCli, name: "GoRedis ", closeFunc: func() {
-			if err := goredisCli.FlushAll().Err(); err != nil {
-				t.Fatalf("goredis - failed to flush: %v", err)
-			}
-			if err := goredisCli.Close(); err != nil {
-				t.Fatalf("goredis - failed to communicate to redis-server: %v", err)
+			if err := redisCli.Close(); err != nil {
+				t.Fatalf("redis - failed to communicate to redis-server: %v", err)
 			}
 		}},
 	}
@@ -787,7 +767,6 @@ func testJSONNumIncrBy(rh *Handler, t *testing.T) {
 				path:   ".",
 				number: 5,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected a number but found string"),
 			wantErr: true,
 		},
 		{
@@ -797,7 +776,6 @@ func testJSONNumIncrBy(rh *Handler, t *testing.T) {
 				path:   ".",
 				number: 5,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected a number but found object"),
 			wantErr: true,
 		},
 		{
@@ -890,7 +868,6 @@ func testJSONNumMultBy(rh *Handler, t *testing.T) {
 				path:   ".",
 				number: 5,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected a number but found string"),
 			wantErr: true,
 		},
 		{
@@ -900,7 +877,6 @@ func testJSONNumMultBy(rh *Handler, t *testing.T) {
 				path:   ".",
 				number: 5,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected a number but found object"),
 			wantErr: true,
 		},
 		{
@@ -987,7 +963,6 @@ func testJSONStrAppend(rh *Handler, t *testing.T) {
 				path:       "number",
 				jsonstring: "\"24\"",
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected string but found integer"),
 			wantErr: true,
 		},
 		{
@@ -1070,7 +1045,6 @@ func testJSONStrLen(rh *Handler, t *testing.T) {
 				key:  "testObj",
 				path: "number",
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected string but found integer"),
 			wantErr: true,
 		},
 		{
@@ -1152,7 +1126,6 @@ func testJSONArrAppend(rh *Handler, t *testing.T) {
 				path:   ".",
 				values: appendValues,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
 			wantErr: true,
 		},
 		{
@@ -1225,7 +1198,6 @@ func testJSONArrLen(rh *Handler, t *testing.T) {
 				key:  "kstr",
 				path: ".",
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
 			wantErr: true,
 		},
 		{
@@ -1312,7 +1284,6 @@ func testJSONArrPop(rh *Handler, t *testing.T) {
 				path:  ".",
 				index: rjs.PopArrLast,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
 			wantErr: true,
 		},
 		{
@@ -1430,7 +1401,6 @@ func testJSONArrIndex(rh *Handler, t *testing.T) {
 				path:  ".",
 				value: "one",
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
 			wantErr: true,
 		},
 		{
@@ -1513,7 +1483,6 @@ func testJSONArrTrim(rh *Handler, t *testing.T) {
 				start: 1,
 				end:   2,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
 			wantErr: true,
 		},
 		{
@@ -1612,7 +1581,6 @@ func testJSONArrInsert(rh *Handler, t *testing.T) {
 				index:  0,
 				values: insertValues,
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected array but found string"),
 			wantErr: true,
 		},
 		{
@@ -1698,7 +1666,6 @@ func testJSONObjLen(rh *Handler, t *testing.T) {
 				key:  "tstr",
 				path: ".",
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected object but found string"),
 			wantErr: true,
 		},
 		{
@@ -1772,7 +1739,6 @@ func testJSONObjKeys(rh *Handler, t *testing.T) {
 				key:  "tstr",
 				path: ".",
 			},
-			wantRes: redigo.Error("ERR wrong type of path value - expected object but found string"),
 			wantErr: true,
 		},
 		{

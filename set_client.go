@@ -1,17 +1,15 @@
 package rejson
 
 import (
-	goredis "github.com/go-redis/redis/v7"
-	redigo "github.com/gomodule/redigo/redis"
-	"github.com/nitishm/go-rejson/clients"
-	"github.com/nitishm/go-rejson/rjs"
+	"github.com/go-redis/redis/v8"
+	"github.com/kaiaulu/go-rejson/clients"
+	"github.com/kaiaulu/go-rejson/rjs"
 )
 
 // RedisClient provides interface for Client handling in the ReJSON Handler
 type RedisClient interface {
 	SetClientInactive()
-	SetRedigoClient(redigo.Conn)
-	SetGoRedisClient(conn *goredis.Client)
+	SetRedisClient(conn *redis.Client)
 }
 
 // SetClientInactive resets the handler and unset any client, set to the handler
@@ -21,16 +19,9 @@ func (r *Handler) SetClientInactive() {
 	r.implementation = _t.implementation
 }
 
-// SetRedigoClient sets Redigo (https://github.com/gomodule/redigo/redis) client
-// to the handler
-func (r *Handler) SetRedigoClient(conn redigo.Conn) {
-	r.clientName = "redigo"
-	r.implementation = &clients.Redigo{Conn: conn}
-}
-
-// SetGoRedisClient sets Go-Redis (https://github.com/go-redis/redis) client to
+// SetRedisClient sets Go-Redis (https://github.com/go-redis/redis) client to
 // the handler
-func (r *Handler) SetGoRedisClient(conn *goredis.Client) {
-	r.clientName = "goredis"
+func (r *Handler) SetRedisClient(conn *redis.Client) {
+	r.clientName = "redis"
 	r.implementation = &clients.GoRedis{Conn: conn}
 }

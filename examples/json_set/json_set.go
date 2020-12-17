@@ -1,14 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/kaiaulu/go-rejson"
 	"log"
 
-	goredis "github.com/go-redis/redis/v7"
-	"github.com/gomodule/redigo/redis"
-	"github.com/nitishm/go-rejson"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 // Name - student name
@@ -46,14 +46,14 @@ func Example_JSONSet(rh *rejson.Handler) {
 		fmt.Println("Failed to Set: ")
 	}
 
-	studentJSON, err := redis.Bytes(rh.JSONGet("student", "."))
+	studentJSON, err := rh.JSONGet("student", ".")
 	if err != nil {
 		log.Fatalf("Failed to JSONGet")
 		return
 	}
 
 	readStudent := Student{}
-	err = json.Unmarshal(studentJSON, &readStudent)
+	err = json.Unmarshal(studentJSON.([]byte), &readStudent)
 	if err != nil {
 		log.Fatalf("Failed to JSON Unmarshal")
 		return
@@ -68,33 +68,17 @@ func main() {
 	rh := rejson.NewReJSONHandler()
 	flag.Parse()
 
-	// Redigo Client
-	conn, err := redis.Dial("tcp", *addr)
-	if err != nil {
-		log.Fatalf("Failed to connect to redis-server @ %s", *addr)
-	}
-	defer func() {
-		_, err = conn.Do("FLUSHALL")
-		err = conn.Close()
-		if err != nil {
-			log.Fatalf("Failed to communicate to redis-server @ %v", err)
-		}
-	}()
-	rh.SetRedigoClient(conn)
-	fmt.Println("Executing Example_JSONSET for Redigo Client")
-	Example_JSONSet(rh)
-
 	// GoRedis Client
 	cli := goredis.NewClient(&goredis.Options{Addr: *addr})
 	defer func() {
-		if err := cli.FlushAll().Err(); err != nil {
+		if err := cli.FlushAll(context.Background()).Err(); err != nil {
 			log.Fatalf("goredis - failed to flush: %v", err)
 		}
 		if err := cli.Close(); err != nil {
 			log.Fatalf("goredis - failed to communicate to redis-server: %v", err)
 		}
 	}()
-	rh.SetGoRedisClient(cli)
+	rh.SetRedisClient(cli)
 	fmt.Println("\nExecuting Example_JSONSET for Redigo Client")
 	Example_JSONSet(rh)
 }

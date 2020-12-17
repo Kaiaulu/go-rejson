@@ -43,7 +43,7 @@ Set Redigo Client and use ReJSON in it
 
 Similarly, one can set client for Go-Redis
 	cli := goredis.NewClient(&goredis.Options{Addr: *addr})
-	rh.SetGoRedisClient(cli)
+	rh.SetRedisClient(cli)
 
 And now, one can directly use ReJSON commands using the handler
 	res, err := rh.JSONSet("str", ".", "string")

@@ -1,15 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/nitishm/go-rejson/rjs"
+	"github.com/kaiaulu/go-rejson"
+	"github.com/kaiaulu/go-rejson/rjs"
 	"log"
 
-	goredis "github.com/go-redis/redis/v7"
-	"github.com/gomodule/redigo/redis"
-	"github.com/nitishm/go-rejson"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 func Example_JSONArray(rh *rejson.Handler) {
@@ -139,33 +139,17 @@ func main() {
 	rh := rejson.NewReJSONHandler()
 	flag.Parse()
 
-	// Redigo Client
-	conn, err := redis.Dial("tcp", *addr)
-	if err != nil {
-		log.Fatalf("Failed to connect to redis-server @ %s", *addr)
-	}
-	defer func() {
-		_, err = conn.Do("FLUSHALL")
-		err = conn.Close()
-		if err != nil {
-			log.Fatalf("Failed to communicate to redis-server @ %v", err)
-		}
-	}()
-	rh.SetRedigoClient(conn)
-	fmt.Println("Executing Example_JSONSET for Redigo Client")
-	Example_JSONArray(rh)
-
 	// GoRedis Client
 	cli := goredis.NewClient(&goredis.Options{Addr: *addr})
 	defer func() {
-		if err := cli.FlushAll().Err(); err != nil {
+		if err := cli.FlushAll(context.Background()).Err(); err != nil {
 			log.Fatalf("goredis - failed to flush: %v", err)
 		}
 		if err := cli.Close(); err != nil {
 			log.Fatalf("goredis - failed to communicate to redis-server: %v", err)
 		}
 	}()
-	rh.SetGoRedisClient(cli)
+	rh.SetRedisClient(cli)
 	fmt.Println("\nExecuting Example_JSONSET for Redigo Client")
 	Example_JSONArray(rh)
 }
